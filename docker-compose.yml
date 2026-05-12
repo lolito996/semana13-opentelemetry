@@ -1,0 +1,37 @@
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"   # Web UI
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otelcol-contrib/config.yml"]
+    volumes:
+      - ./otel-collector-config.yml:/etc/otelcol-contrib/config.yml:ro
+    ports:
+      - "4317:4317"     # OTLP gRPC receiver for local applications
+      - "4318:4318"     # OTLP HTTP receiver for local applications
+    depends_on:
+      - jaeger
+
+  mysql:
+    image: mysql:8.0
+    container_name: futurex-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: techbankRootPsw
+      MYSQL_DATABASE: futurex_course_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-ptechbankRootPsw"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mysql_data:
