@@ -1,0 +1,7 @@
+# Workshop-generated logs
+logs/*.log
+logs/*.log.*
+logs/*.gz
+
+# Editor lock/temp files (e.g., LibreOffice)
+.LCK*

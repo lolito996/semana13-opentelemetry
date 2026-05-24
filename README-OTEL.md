@@ -74,3 +74,73 @@ Then open Jaeger and inspect traces for:
 
 No manual tracing code is required for this workshop. The Java agent instruments Spring Boot,
 HTTP server handling, outgoing `RestTemplate` calls, and JDBC interactions automatically.
+
+## ELK: Query de logs (Punto 1)
+
+Este repo ahora incluye un stack mínimo de **Elasticsearch + Logstash + Kibana** para que puedas
+indexar logs y ejecutar la query pedida en el taller.
+
+### 1) Levantar ELK
+
+Desde la raíz del workspace:
+
+```powershell
+docker compose up -d elasticsearch kibana logstash
+```
+
+Kibana queda en: `http://localhost:5601`
+
+### 2) Generar logs
+
+Las apps escriben logs en formato **ECS JSON** a la carpeta `./logs` (en la raíz del repo).
+
+- Si corres cada servicio desde su carpeta (lo típico con `mvnw`), el `LOG_DIR` por defecto es `../logs`.
+- Si corres desde otra ruta, puedes forzar la carpeta con una variable de entorno:
+
+```powershell
+$env:LOG_DIR = "./logs"
+```
+
+Para generar un **ERROR** rápido (y que la query tenga resultados), levanta **sólo** el servicio catálogo
+y deja apagado el de cursos, luego llama un endpoint del catálogo:
+
+```powershell
+Invoke-WebRequest http://localhost:8002/catalog
+```
+
+Eso provoca una excepción por conexión fallida al servicio de cursos, que queda registrada como log `ERROR`.
+
+### 3) Crear Data View en Kibana
+
+En Kibana → **Discover** → crea un *Data View* con patrón:
+
+- `logs-futurex-*`
+- Time field: `@timestamp`
+
+### 4) Query requerida (últimas 24 horas)
+
+**Opción A (KQL en Discover):**
+
+```text
+service.name : "fx-catalog-service" and log.level : "ERROR"
+```
+
+**Opción B (Dev Tools → Console, JSON):**
+
+```http
+GET logs-futurex-*/_search
+{
+   "query": {
+      "bool": {
+         "must": [
+            { "match": { "service.name": "fx-catalog-service" } },
+            { "match": { "log.level": "ERROR" } },
+            { "range": { "@timestamp": { "gte": "now-24h" } } }
+         ]
+      }
+   },
+   "sort": [
+      { "@timestamp": { "order": "desc" } }
+   ]
+}
+```
