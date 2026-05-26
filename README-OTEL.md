@@ -2,8 +2,8 @@
 
 This workspace contains two Spring Boot services:
 
-- `parte0-JaegerCourseApp`: course service on port `8001`
-- `part0-JaegerCourseCatalog`: catalog service on port `8002`
+- `parte0-JaegerCourseApp`: course service on port `9001`
+- `part0-JaegerCourseCatalog`: catalog service on port `9002`
 
 ## What was missing
 
@@ -60,15 +60,80 @@ Terminal 2:
 Once both services are running, call:
 
 ```powershell
-Invoke-WebRequest http://localhost:8002/
-Invoke-WebRequest http://localhost:8002/catalog
-Invoke-WebRequest http://localhost:8002/firstcourse
+Invoke-WebRequest http://localhost:9002/
+Invoke-WebRequest http://localhost:9002/catalog
+Invoke-WebRequest http://localhost:9002/firstcourse
 ```
 
 Then open Jaeger and inspect traces for:
 
 - `fx-catalog-service`
 - `fx-course-service`
+
+## Locust: carga para cursos y catalogo en Grafana
+
+Este repo incluye un servicio `locust` que simula trafico contra:
+
+- Course service: `http://host.docker.internal:9001`
+- Catalog service: `http://host.docker.internal:9002`
+
+Locust expone metricas Prometheus en `http://localhost:8089/metrics`, Prometheus las scrapea con el
+job `fx-locust` y Grafana provisiona automaticamente el dashboard **FutureX - Carga Locust**.
+
+### 1) Levantar observabilidad y Locust
+
+Desde la raiz del workspace:
+
+```powershell
+docker compose up -d prometheus grafana locust
+```
+
+Tambien puedes levantar todo el stack:
+
+```powershell
+docker compose up -d
+```
+
+### 2) Levantar las aplicaciones
+
+Los servicios Spring Boot deben estar corriendo en el host:
+
+- Course service: `http://localhost:9001`
+- Catalog service: `http://localhost:9002`
+
+### 3) Iniciar la prueba de carga
+
+Abre Locust:
+
+```text
+http://localhost:8089
+```
+
+Usa, por ejemplo:
+
+- Number of users: `20`
+- Spawn rate: `2`
+- Host: `http://host.docker.internal:9002`
+
+### 4) Analizar en Grafana
+
+Abre Grafana:
+
+```text
+http://localhost:3000
+```
+
+Credenciales:
+
+- User: `admin`
+- Password: `admin`
+
+Dashboard:
+
+- `FutureX / FutureX - Carga Locust`
+
+El dashboard muestra usuarios activos, RPS, errores por segundo y latencias de Locust, junto con RPS y
+p95 desde las metricas Spring Boot de ambos servicios.
 
 ## Important note
 

@@ -75,6 +75,8 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - locust
 
   grafana:
     image: grafana/grafana:latest
@@ -83,8 +85,24 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
+
+  locust:
+    image: locustio/locust:latest
+    ports:
+      - "8089:8089"
+    environment:
+      - COURSE_SERVICE_URL=http://host.docker.internal:9001
+      - CATALOG_SERVICE_URL=http://host.docker.internal:9002
+    volumes:
+      - ./locust:/mnt/locust:ro
+    command: ["-f", "/mnt/locust/locustfile.py", "--host", "http://host.docker.internal:9002"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 volumes:
   elasticsearch_data:

@@ -5,9 +5,14 @@ scrape_configs:
   - job_name: 'fx-course-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['host.docker.internal:8001']
+      - targets: ['host.docker.internal:9001']
 
   - job_name: 'fx-catalog-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['host.docker.internal:8002']
+      - targets: ['host.docker.internal:9002']
+
+  - job_name: 'fx-locust'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['locust:8089']
